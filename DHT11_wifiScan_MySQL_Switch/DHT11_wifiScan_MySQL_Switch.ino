@@ -3,9 +3,15 @@
 #include <MySQL_Cursor.h>
 #include <dht.h>
 #include <Servo.h>
+#include <LiquidCrystal.h>
 
 // MUC Mac_address Configuration
 byte mac_addr[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
+
+// initialize the library by associating any needed LCD interface pin
+// with the arduino pin number it is connected to
+const int rs = 22, en = 23, d4 = 5, d5 = 18, d6 = 19, d7 = 21;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // MySQL Connection Configuration
 IPAddress server_addr(172,20,10,2);  // IP of the MySQL *server* here
@@ -62,6 +68,10 @@ void setup()
         Function = Beginning;
         Serial.println();
         Serial.println("Initiation sequins finish");
+        // set up the LCD's number of columns and rows:
+        lcd.begin(16, 2);
+        // Print a message to the LCD.
+        lcd.print(" IoT with ESP32");
     }
 
     
