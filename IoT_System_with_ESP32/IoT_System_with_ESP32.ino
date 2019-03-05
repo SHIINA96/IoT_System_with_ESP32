@@ -4,6 +4,15 @@
 #include <dht.h>
 #include <Servo.h>
 #include <LiquidCrystal.h>
+#include <WiFiClient.h>
+#include <WebServer.h>
+#include <ESPmDNS.h>
+#include <Update.h>
+
+// OTA Configure
+#define LED 2
+const char* host = "esp32";
+WebServer server(80);
 
 // MUC Mac_address Configuration
 byte mac_addr[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
@@ -12,12 +21,6 @@ byte mac_addr[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 // with the arduino pin number it is connected to
 const int rs = 22, en = 23, d4 = 5, d5 = 18, d6 = 19, d7 = 21;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
-
-// MySQL Connection Configuration
-IPAddress server_addr(172,20,10,2);  // IP of the MySQL *server* here
-// This IP address shuold be the same as your computer
-char user[100] = "";              // MySQL user login username
-char password[100] = "";        // MySQL user login password
 
 // MySQL Insert Query
 char INSERT_DATA_Temperature[] = "INSERT INTO Arduino.Temperature_Data (Sensor_Name, Temperature_Value) VALUES ('%s', %s)";
@@ -76,7 +79,8 @@ void setup()
 
     
 void loop() 
-    {        
+    { 
+//        server.handleClient();       
         switch(Function)
             {              
                 case Beginning :
@@ -86,48 +90,52 @@ void loop()
 
 
                 case wifi_Scan :
-                    WiFi_Scan();                    
+                      WiFi_Scan();                    
                     break;
 
 
                 case wifi_Connection:
-                    //String wifi_choose = "";
-                    Serial.println("Please input CONNECT or SKIP");                       
-                    while(Serial.available()==0)
-                        {}
-                    wifi_state = Serial.readString();
-                    
-                    if(wifi_state != "SKIP" && wifi_state != "CONNECT")
-                        {
-                            Serial.println("Please try again");
-                            Function = wifi_Connection;
-                            break;                             
-                        }
+                        //String wifi_choose = "";
+                        Serial.println("Please input CONNECT, SKIP or OTA");                       
+                        while(Serial.available()==0)
+                            {}
+                        wifi_state = Serial.readString();
                         
-                    if(wifi_state == "SKIP")
-                        {
-                            Serial.println("Skip Wi-Fi Connection");
-                            delay(1000);
-                            Function = Input_Temperature;
-                            break;
-                        }
-                    
-                    if(wifi_state == "CONNECT")
-                        {
+                        if(wifi_state != "SKIP" && wifi_state != "CONNECT" && wifi_state != "OTA" )
+                            {
+                                Serial.println("Please try again");
+                                Function = wifi_Connection;
+                                break;                             
+                            }
                             
-                                                       
-                            WiFi_Connection();
-
-                            Database_Setup();
-
-                            
-                        }
+                        if(wifi_state == "SKIP")
+                            {
+                                Serial.println("Skip Wi-Fi Connection");
+                                delay(1000);
+                                Function = Input_Temperature;
+                                break;
+                            }
+                        
+                        if(wifi_state == "CONNECT")
+                            {                                                    
+                                WiFi_Connection();
+                                Function = Input_Temperature;                    
+                            }
+                        if(wifi_state == "OTA")
+                            {
+                                WiFi_Connection();
+                                OTA_Function();
+                                while(true)
+                                    {
+                                        server.handleClient(); 
+                                    }  
+                            }
                     
-                    Function = Input_Temperature;
                     break;
 
                     
                 case Input_Temperature : 
+                        Database_Setup();
                         Serial.println("Enter the Temperature Setting:");
                         while(Serial.available()==0)  //wait for input
                             {}

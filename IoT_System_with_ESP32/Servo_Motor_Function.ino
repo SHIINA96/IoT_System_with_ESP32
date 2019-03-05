@@ -7,6 +7,7 @@ int Gate_Open(void)
                 delay(20);
             }
     }
+    
 int Gate_Close(void)
     {
         for(int posDegrees = 180; posDegrees >= 0; posDegrees--)

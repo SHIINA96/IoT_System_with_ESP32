@@ -1,3 +1,10 @@
+// MySQL Connection Configuration
+extern IPAddress server_addr(192,168,1,80);  // IP of the MySQL *server* here
+// This IP address shuold be the same as your computer
+extern char user[100] = "";              // MySQL user login username
+extern char password[100] = "";        // MySQL user login password
+
+
 // Input your MySQL port, username and password
 int Database_Setup(void)
     {
