@@ -54,14 +54,19 @@ int Data_Upload(void)
                 // Save
                 dtostrf(DHT.temperature, 1, 1, temperature);
                 dtostrf(DHT.humidity, 1, 1, humidity);
+                dtostrf(readSoil(), 1, 1, Soil_Moisture_Value);
                 sprintf(query_Temperature, INSERT_DATA_Temperature, "DHT11", temperature);
                 sprintf(query_Humidity, INSERT_DATA_Humidity, "DHT11", humidity);
+                sprintf(query_SoilMoisture, INSERT_DATA_SoilMoisture, "SparkFun", Soil_Moisture_Value, SoilBuf);
                 // Execute the query
                 cur_mem->execute(query_Temperature);
+                //delete cur_mem;
                 cur_mem->execute(query_Humidity);
-                // Note: since there are no results, we do not need to read any data
-                // Deleting the cursor also frees up memory used
+                //delete cur_mem;
+                cur_mem->execute(query_SoilMoisture);
                 delete cur_mem;
+                // Note: since there are no results, we do not need to read any data
+                // Deleting the cursor also frees up memory used   
                 Serial.println("Temeperature Data recorded.");
                 delay(100);
                 Serial.println("Humidity Data recorded.");
