@@ -9,8 +9,11 @@
 #include <ESPmDNS.h>
 #include <Update.h>
 
-// OTA Configure
+// Pin Define
 #define LED 2
+#define RELAY 25
+
+// OTA Configure
 const char* host = "esp32";
 WebServer server(80);
 
@@ -32,6 +35,14 @@ char query_SoilMoisture[128];
 char temperature[10];
 char humidity[10];
 char Soil_Moisture_Value[10];
+
+// MySQL Select Query
+char QUERY_LED[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'LED' order by A_ID DESC LIMIT 1;";
+char query_LED[128];
+char QUERY_RELAY[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'RELAY' order by A_ID DESC LIMIT 1;";
+char query_RELAY[128];
+char QUERY_SERVO[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'SERVO' order by A_ID DESC LIMIT 1;";
+char query_SERVO[128];
 
 // Use this for WiFi instead of EthernetClient
 WiFiClient client;
@@ -76,6 +87,8 @@ unsigned char Function = 1;
 
 void setup()
     {
+        pinMode(LED,OUTPUT);
+        pinMode(RELAY,OUTPUT);
         Serial.begin(115200); //setting boud rate
         servo1.attach(servoPin);  //init servo
         Function = Beginning;
@@ -200,7 +213,12 @@ void loop()
                                 
                                   Soil_State.toCharArray(SoilBuf,50);
                                   DHT11();
-                                  Data_Upload(); 
+                                  Data_Upload();
+                                  Remote_Control(query_LED, QUERY_LED, LED);
+                                  Remote_Control(query_RELAY, QUERY_RELAY, RELAY);
+                                  Remote_Control_SERVO(query_SERVO, QUERY_SERVO); 
+                                  conn.close();
+                                  
                                   if(Serial.available() > 0)
                                       {
                                           Function = Input_Temperature;
