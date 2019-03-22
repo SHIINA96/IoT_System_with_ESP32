@@ -1,5 +1,5 @@
 // MySQL Connection Configuration
-extern IPAddress server_addr(172,20,10,2);  // IP of the MySQL *server* here
+extern IPAddress server_addr(192,168,1,69);  // IP of the MySQL *server* here
 // This IP address shuold be the same as your computer
 extern char user[100] = "";              // MySQL user login username
 extern char password[100] = "";        // MySQL user login password
@@ -75,6 +75,24 @@ int Data_Upload(void)
         Serial.println("Connection failed.");
         //conn.close();
     }
+
+void LED_Manual_Control_Upload()
+{
+    if (conn.connect(server_addr, 3306, user, password))
+        {
+            // Temperature & Humidity Uploading Sequence
+            delay(100);
+            // Insert data
+            // Initiate the query class instance
+            MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
+            sprintf(query_LED_Manual, INSERT_DATA_LED_Manual, "LED", state, "Manual");
+            // Execute the query
+            cur_mem->execute(query_LED_Manual);
+        }
+    else
+    Serial.println("Connection failed.");
+    conn.close();
+}
 // Insert section end
 
 

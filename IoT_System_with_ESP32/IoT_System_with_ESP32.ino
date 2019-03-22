@@ -12,6 +12,10 @@
 // Pin Define
 #define LED 2
 #define RELAY 25
+#define Button 26
+
+volatile byte LED_state;
+char* state = "";
 
 // OTA Configure
 const char* host = "esp32";
@@ -35,6 +39,10 @@ char query_SoilMoisture[128];
 char temperature[10];
 char humidity[10];
 char Soil_Moisture_Value[10];
+
+// MySQL Insert Query for Manual Control
+char INSERT_DATA_LED_Manual[] = "INSERT INTO Arduino.Actuator (Actuator_Name, Actuator_State, Control_Type) VALUES ('%s','%s','%s')";
+char query_LED_Manual[128];
 
 // MySQL Select Query
 char QUERY_LED[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'LED' order by A_ID DESC LIMIT 1;";
@@ -83,12 +91,14 @@ unsigned char Function = 1;
 #define Sensor 3
 #define wifi_Scan 4
 #define wifi_Connection 5
+#define Manual_Control 6
 
 
 void setup()
     {
         pinMode(LED,OUTPUT);
         pinMode(RELAY,OUTPUT);
+        pinMode(Button,INPUT);
         Serial.begin(115200); //setting boud rate
         servo1.attach(servoPin);  //init servo
         Function = Beginning;
@@ -181,32 +191,8 @@ void loop()
                     break;
 
                 case Sensor :                                         
-                        while(true)
+                        while(digitalRead(Button)==LOW)
                             {
-//                                  chk = DHT.read11(DHT11_Pin);
-//                                  //add .toInt() after the veriable to converting it from string type into a int type
-//                                  if(DHT.temperature >= Temperature_Input.toInt() && gate_state == 0) 
-//                                      {
-//                                          Gate_Open();
-//                                          gate_state = 1;       
-//                                      }
-//                                  if(DHT.temperature < Temperature_Input.toInt() && gate_state == 1)
-//                                      {
-//                                          Gate_Close();
-//                                          gate_state = 0;
-//                                      } 
-//                                  if(Serial.available() > 0)
-//                                      {
-//                                          Function = Input_Temperature;
-//                                          break;
-//                                      }
-//                                  Serial.print("Temperature="); //output will be here
-//                                  Serial.println(DHT.temperature);
-//                                  Serial.print("Humidity=");
-//                                  Serial.println(DHT.humidity);
-                                    //Serial.print("Soil Moisture = ");
-                                  //String message = "Soil Moisture = "; 
-                                   
                                   //get soil moisture value from the function below and print it
                                   Serial.print("Soil Moisture = "+ Soil_State);
                                   Serial.println(readSoil());
@@ -223,7 +209,27 @@ void loop()
                                       {
                                           Function = Input_Temperature;
                                       }                           
-                            }            
-                    break;                                    
+                            }
+                        Function = Manual_Control;            
+                    break;
+
+                    
+                case Manual_Control:
+                        Serial.println("Manual Control");
+                        LED_state = digitalRead(LED);
+                        LED_state = !LED_state;
+                        //Serial.print("Interrupt");
+                        digitalWrite(LED,LED_state);
+                        if(LED_state == HIGH);
+                            {
+                                state = "ON";
+                            }
+                        if(LED_state == LOW)
+                            {
+                                state = "OFF";
+                            }
+                        LED_Manual_Control_Upload();
+                        Function = Sensor;
+                    break;                                 
             }
     }
