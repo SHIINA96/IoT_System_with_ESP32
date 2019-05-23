@@ -11,10 +11,15 @@
 
 // Pin Define
 #define LED 2
-#define RELAY 25
-#define Button 26
+#define RELAY_PUMP 12
+#define RELAY_FAN 4
+#define Button_LED 26
+#define Button_FAN 27
+#define Button_PUMP 14
 
 volatile byte LED_state;
+volatile byte FAN_state;
+volatile byte PUMP_state;
 char* state = "";
 
 // OTA Configure
@@ -40,17 +45,27 @@ char temperature[10];
 char humidity[10];
 char Soil_Moisture_Value[10];
 
+
 // MySQL Insert Query for Manual Control
 char INSERT_DATA_LED_Manual[] = "INSERT INTO Arduino.Actuator (Actuator_Name, Actuator_State, Control_Type) VALUES ('%s','%s','%s')";
 char query_LED_Manual[128];
 
+char INSERT_DATA_FAN_Manual[] = "INSERT INTO Arduino.Actuator (Actuator_Name, Actuator_State, Control_Type) VALUES ('%s','%s','%s')";
+char query_FAN_Manual[128];
+
+char INSERT_DATA_PUMP_Manual[] = "INSERT INTO Arduino.Actuator (Actuator_Name, Actuator_State, Control_Type) VALUES ('%s','%s','%s')";
+char query_PUMP_Manual[128];
+
+
 // MySQL Select Query
 char QUERY_LED[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'LED' order by A_ID DESC LIMIT 1;";
 char query_LED[128];
-char QUERY_RELAY[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'RELAY' order by A_ID DESC LIMIT 1;";
-char query_RELAY[128];
-char QUERY_SERVO[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'SERVO' order by A_ID DESC LIMIT 1;";
-char query_SERVO[128];
+char QUERY_RELAY_PUMP[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'PUMP' order by A_ID DESC LIMIT 1;";
+char query_RELAY_PUMP[128];
+char QUERY_RELAY_FAN[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'FAN' order by A_ID DESC LIMIT 1;";
+char query_RELAY_FAN[128];
+//char QUERY_SERVO[] = "select Actuator_State from Arduino.Actuator where Actuator_Name = 'SERVO' order by A_ID DESC LIMIT 1;";
+//char query_SERVO[128];
 
 // Use this for WiFi instead of EthernetClient
 WiFiClient client;
@@ -69,11 +84,11 @@ extern int soilPower = 32;//Variable for Soil moisture Power
 String Soil_State = "";
 char SoilBuf[100];
 
-// Servo Configurations
-Servo servo1;
-static const int servoPin = 12;
+//// Servo Configurations
+//Servo servo1;
+//static const int servoPin = 12;
 int gate_state = 0;
-int input_state = 0;
+//int input_state = 0;
 
 // WiFi Configurations
 int n = 0;//for wifi_Scan only
@@ -92,15 +107,18 @@ unsigned char Function = 1;
 #define wifi_Scan 4
 #define wifi_Connection 5
 #define Manual_Control 6
+#define Manual_Control_Fan 7
+#define Manual_Control_Pump 8
 
 
 void setup()
     {
         pinMode(LED,OUTPUT);
-        pinMode(RELAY,OUTPUT);
-        pinMode(Button,INPUT);
+        pinMode(RELAY_PUMP,OUTPUT);
+        pinMode(RELAY_FAN,OUTPUT);
+        pinMode(Button_LED,INPUT);
         Serial.begin(115200); //setting boud rate
-        servo1.attach(servoPin);  //init servo
+        // servo1.attach(servoPin);  //init servo
         Function = Beginning;
         Serial.println();
         Serial.println("Initiation sequins finish");
@@ -120,7 +138,9 @@ void loop()
         switch(Function)
             {              
                 case Beginning :
-                        Serial.println("System start");                                
+                        Serial.println("System start");
+                        lcd.setCursor(2,1);
+                        lcd.print("System Start");                             
                         Function = wifi_Scan;
                     break;
 
@@ -132,7 +152,20 @@ void loop()
 
                 case wifi_Connection:
                         //String wifi_choose = "";
-                        Serial.println("Please input CONNECT, SKIP or OTA");                       
+                        Serial.println("Please input CONNECT, SKIP or OTA");
+                        lcd.clear();
+                        lcd.setCursor(0,0);
+                        lcd.print("1-CONNECT 2-SKIP");
+                        lcd.setCursor(0,1);
+                        lcd.print("3-OTA");
+//                        for (int positionCounter = 0; positionCounter < 13; positionCounter++) 
+//                            {
+//                              // scroll one position left:
+//                              lcd.scrollDisplayLeft();
+//                              // wait a bit:
+//                              delay(1000);
+//                            }
+                                       
                         while(Serial.available()==0)
                             {}
                         wifi_state = Serial.readString();
@@ -191,18 +224,28 @@ void loop()
                     break;
 
                 case Sensor :                                         
-                        while(digitalRead(Button)==LOW)
+                        while(digitalRead(Button_LED)==LOW && digitalRead(Button_FAN)==LOW && digitalRead(Button_PUMP)==LOW)
                             {
+                                  lcd.clear();
+                                
                                   //get soil moisture value from the function below and print it
                                   Serial.print("Soil Moisture = "+ Soil_State);
                                   Serial.println(readSoil());
                                 
                                   Soil_State.toCharArray(SoilBuf,50);
                                   DHT11();
+                                  lcd.setCursor(0,0);
+                                  lcd.print(String("Temp=") + String(DHT.temperature) + String("C"));
+                                  lcd.setCursor(0,1);
+                                  lcd.print(String("Humi=") + String(DHT.humidity) + String("%rh"));
+                                  
                                   Data_Upload();
                                   Remote_Control(query_LED, QUERY_LED, LED);
-                                  Remote_Control(query_RELAY, QUERY_RELAY, RELAY);
-                                  Remote_Control_SERVO(query_SERVO, QUERY_SERVO); 
+                                  Remote_Control(query_RELAY_PUMP, QUERY_RELAY_PUMP, RELAY_PUMP);
+                                  Remote_Control(query_RELAY_FAN, QUERY_RELAY_FAN, RELAY_FAN);
+                                  
+                                  
+                                  //Remote_Control_SERVO(query_SERVO, QUERY_SERVO); 
                                   conn.close();
                                   
                                   if(Serial.available() > 0)
@@ -210,14 +253,26 @@ void loop()
                                           Function = Input_Temperature;
                                       }                           
                             }
-                        Function = Manual_Control;            
+                        if(digitalRead(Button_LED)!=LOW && digitalRead(Button_FAN)==LOW && digitalRead(Button_PUMP)==LOW)
+                           {Function = Manual_Control;}
+                        if(digitalRead(Button_LED)==LOW && digitalRead(Button_FAN)!=LOW && digitalRead(Button_PUMP)==LOW)
+                           {Function = Manual_Control_Fan;}
+                        if(digitalRead(Button_LED)==LOW && digitalRead(Button_FAN)==LOW && digitalRead(Button_PUMP)!=LOW)
+                           {Function = Manual_Control_Pump;}
                     break;
 
                     
                 case Manual_Control:
-                        Serial.println("Manual Control");
+                        lcd.clear();
+                        lcd.setCursor(0,0);
+                        lcd.print("Manual Control");
+                        
                         LED_state = digitalRead(LED);
                         LED_state = !LED_state;
+
+                        lcd.setCursor(0,1);
+                        lcd.print(String("LED State:") + String(LED_state));
+                        Serial.println("Manual Control");
                         //Serial.print("Interrupt");
                         digitalWrite(LED,LED_state);
                         if(LED_state == HIGH);
@@ -230,6 +285,56 @@ void loop()
                             }
                         LED_Manual_Control_Upload();
                         Function = Sensor;
-                    break;                                 
+                    break;
+
+                case Manual_Control_Fan:
+                        lcd.clear();
+                        lcd.setCursor(0,0);
+                        lcd.print("Manual Control");
+                        
+                        FAN_state = digitalRead(RELAY_FAN);
+                        FAN_state = !FAN_state;
+
+                        lcd.setCursor(0,1);
+                        lcd.print(String("FAN State:") + String(FAN_state));
+                        Serial.println("Manual Control");
+                        //Serial.print("Interrupt");
+                        digitalWrite(RELAY_FAN,FAN_state);
+                        if(FAN_state == HIGH);
+                            {
+                                state = "ON";
+                            }
+                        if(FAN_state == LOW)
+                            {
+                                state = "OFF";
+                            }
+                        FAN_Manual_Control_Upload();
+                        Function = Sensor;
+                    break;
+                    
+                case Manual_Control_Pump:
+                        lcd.clear();
+                        lcd.setCursor(0,0);
+                        lcd.print("Manual Control");
+                        
+                        PUMP_state = digitalRead(RELAY_PUMP);
+                        PUMP_state = !PUMP_state;
+
+                        lcd.setCursor(0,1);
+                        lcd.print(String("PUMP State:") + String(PUMP_state));
+                        Serial.println("Manual Control");
+                        //Serial.print("Interrupt");
+                        digitalWrite(RELAY_PUMP,PUMP_state);
+                        if(PUMP_state == HIGH);
+                            {
+                                state = "ON";
+                            }
+                        if(PUMP_state == LOW)
+                            {
+                                state = "OFF";
+                            }
+                        PUMP_Manual_Control_Upload();
+                        Function = Sensor;
+                    break;
             }
     }

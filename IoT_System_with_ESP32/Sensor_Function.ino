@@ -4,12 +4,14 @@ int DHT11(void)
         //add .toInt() after the veriable to converting it from string type into a int type
         if(DHT.temperature >= Temperature_Input.toInt() && gate_state == 0) 
             {
-                Gate_Open();
+                // Gate_Open();
+                digitalWrite(RELAY_FAN,HIGH);
                 gate_state = 1;       
             }
         if(DHT.temperature < Temperature_Input.toInt() && gate_state == 1)
             {
-                Gate_Close();
+                // Gate_Close();
+                digitalWrite(RELAY_FAN,LOW);
                 gate_state = 0;
             } 
 //        if(Serial.available() > 0)
