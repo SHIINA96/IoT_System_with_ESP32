@@ -16,3 +16,8 @@ I'm still trying to get the database IP address from the serial monitor of ardui
 5. In case you don't know how to manipulate SQL with terminal, please use MySQL Workbench
 6. [Dr.Bell's MySQl_connector_Arduino](https://github.com/ChuckBell/MySQL_Connector_Arduino)
 7. A little bit of C language coding, a bit of luck and some magic
+
+
+Do notice, DO NOT USING GPIO12 AS ANY OUTPUT OR INPUT. This may cause ESP32 pullup the flash and refuse Arduino IDE write or read the memory
+
+Do notice, DO NOT USING GPIO34 & GPIO35 otherwise the LCD can not working properly

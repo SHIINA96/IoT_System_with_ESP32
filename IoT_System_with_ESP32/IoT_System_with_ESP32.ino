@@ -11,15 +11,15 @@
 
 // Pin Define
 #define LED 2
-#define RELAY_PUMP 12
-#define RELAY_FAN 4
-#define Button_LED 26
-#define Button_FAN 27
-#define Button_PUMP 14
+#define RELAY_PUMP 32
+#define RELAY_FAN 33
+#define Button_LED 5
+#define Button_FAN 18
+#define Button_PUMP 19
 
-volatile byte LED_state;
-volatile byte FAN_state;
-volatile byte PUMP_state;
+volatile byte LED_state = LOW;
+volatile byte FAN_state = LOW;
+volatile byte PUMP_state = LOW;
 char* state = "";
 
 // OTA Configure
@@ -31,7 +31,7 @@ byte mac_addr[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
 
 // initialize the library by associating any needed LCD interface pin
 // with the arduino pin number it is connected to
-const int rs = 22, en = 23, d4 = 5, d5 = 18, d6 = 19, d7 = 21;
+const int rs = 15, en = 4, d4 = 25, d5 = 26, d6 = 27, d7 = 14;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 // MySQL Insert Query
@@ -73,14 +73,14 @@ MySQL_Connection conn((Client *)&client);
 
 // DHT11 Configurations
 dht DHT;
-int DHT11_Pin = 13;
+int DHT11_Pin = 21;
 int chk = 0; 
 String Temperature_Input = "";
 
 // Soil Moisture Sensor Configurations
 extern int val = 0; //value for storing moisture value 
-extern int soilPin = 33;//Declare a variable for the soil moisture sensor 
-extern int soilPower = 32;//Variable for Soil moisture Power
+extern int soilPin = 22;//Declare a variable for the soil moisture sensor 
+extern int soilPower = 23;//Variable for Soil moisture Power
 String Soil_State = "";
 char SoilBuf[100];
 
@@ -114,8 +114,11 @@ unsigned char Function = 1;
 void setup()
     {
         pinMode(LED,OUTPUT);
+        digitalWrite(LED, LOW);
         pinMode(RELAY_PUMP,OUTPUT);
+        digitalWrite(RELAY_PUMP, LOW);
         pinMode(RELAY_FAN,OUTPUT);
+        digitalWrite(RELAY_FAN, LOW);
         pinMode(Button_LED,INPUT);
         Serial.begin(115200); //setting boud rate
         // servo1.attach(servoPin);  //init servo
@@ -244,7 +247,6 @@ void loop()
                                   Remote_Control(query_RELAY_PUMP, QUERY_RELAY_PUMP, RELAY_PUMP);
                                   Remote_Control(query_RELAY_FAN, QUERY_RELAY_FAN, RELAY_FAN);
                                   
-                                  
                                   //Remote_Control_SERVO(query_SERVO, QUERY_SERVO); 
                                   conn.close();
                                   
@@ -271,7 +273,7 @@ void loop()
                         LED_state = !LED_state;
 
                         lcd.setCursor(0,1);
-                        lcd.print(String("LED State:") + String(LED_state));
+                        lcd.print(String("LED State:") + String(!LED_state));
                         Serial.println("Manual Control");
                         //Serial.print("Interrupt");
                         digitalWrite(LED,LED_state);
@@ -296,7 +298,7 @@ void loop()
                         FAN_state = !FAN_state;
 
                         lcd.setCursor(0,1);
-                        lcd.print(String("FAN State:") + String(FAN_state));
+                        lcd.print(String("FAN State:") + String(!FAN_state));
                         Serial.println("Manual Control");
                         //Serial.print("Interrupt");
                         digitalWrite(RELAY_FAN,FAN_state);
@@ -321,7 +323,7 @@ void loop()
                         PUMP_state = !PUMP_state;
 
                         lcd.setCursor(0,1);
-                        lcd.print(String("PUMP State:") + String(PUMP_state));
+                        lcd.print(String("PUMP State:") + String(!PUMP_state));
                         Serial.println("Manual Control");
                         //Serial.print("Interrupt");
                         digitalWrite(RELAY_PUMP,PUMP_state);
